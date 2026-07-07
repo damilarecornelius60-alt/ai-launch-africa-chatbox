@@ -1,0 +1,17 @@
+{
+  "name": "ai-launch-africa-chatbot-engine",
+  "version": "1.0.0",
+  "description": "Reusable AI chatbot backend for AI Launch Africa clients. One engine, many clients via config.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "@anthropic-ai/sdk": "^0.32.1"
+  }
+}
