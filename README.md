@@ -75,7 +75,7 @@ Use that URL in place of `YOUR-DEPLOYED-URL.com` above.
 
 ## 5. Cost reality check
 
-Model used: `claude-haiku-4-5` — cheap and fast, plenty capable for FAQs,
+Model used: `claude-haiku-4-5-20251001` — cheap and fast, plenty capable for FAQs,
 orders, and bookings. Roughly $1 per million input tokens, $5 per million
 output tokens. A typical short customer conversation costs a small fraction
 of a cent. Even a client getting hundreds of chats a month costs you only a
