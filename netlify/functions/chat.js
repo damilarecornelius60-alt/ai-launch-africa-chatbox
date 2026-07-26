@@ -62,10 +62,14 @@ exports.handler = async function (event) {
     const data = await response.json();
 
     if (!response.ok) {
+      // Log the real reason (e.g. low credit balance, rate limit) for
+      // yourself, but never show raw API errors to a visitor on the site.
       console.error('Anthropic API error:', data);
       return {
         statusCode: response.status,
-        body: JSON.stringify({ error: data.error?.message || 'Anthropic API error.' }),
+        body: JSON.stringify({
+          error: "I'm temporarily unavailable — please try again shortly or reach out directly.",
+        }),
       };
     }
 
@@ -83,7 +87,9 @@ exports.handler = async function (event) {
     console.error('Function error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Server error calling Claude API.' }),
+      body: JSON.stringify({
+        error: "I'm temporarily unavailable — please try again shortly or reach out directly.",
+      }),
     };
   }
 };
