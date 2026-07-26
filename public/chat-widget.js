@@ -3,7 +3,12 @@
 // This runs in the visitor's browser. It never sees your API key —
 // it only talks to /.netlify/functions/chat, which runs on the server.
 
-const CLIENT_ID = 'default'; // change this per client site if reusing the engine
+// clientId and target (company name/URL) can arrive via the query string,
+// e.g. chat.html?clientId=marketlead&target=acmelogistics.com
+// This is how the search page hands off into a running conversation.
+const urlParams = new URLSearchParams(window.location.search);
+const CLIENT_ID = urlParams.get('clientId') || 'default';
+const TARGET = urlParams.get('target');
 
 const messagesEl = document.getElementById('chat-messages');
 const inputEl = document.getElementById('chat-input');
@@ -20,8 +25,8 @@ function addMessage(text, role) {
   return div;
 }
 
-async function sendMessage() {
-  const text = inputEl.value.trim();
+async function sendMessage(presetText) {
+  const text = (presetText !== undefined ? presetText : inputEl.value).trim();
   if (!text) return;
 
   addMessage(text, 'user');
@@ -69,4 +74,10 @@ inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendMessage();
 });
 
-addMessage("Hi! I'm the AI Launch Africa assistant. Ask me anything.", 'bot');
+if (TARGET) {
+  // Came from the search page with a company already chosen —
+  // kick off Step 1 immediately instead of waiting for the user to type.
+  sendMessage(`Let's start. My company is: ${TARGET}`);
+} else {
+  addMessage("Hi! I'm the AI Launch Africa assistant. Ask me anything.", 'bot');
+}
