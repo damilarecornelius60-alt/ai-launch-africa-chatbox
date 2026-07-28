@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarketLead AI — Find your company</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-soft: rgba(255,255,255,0.06);
+    --ink: #FDF6F2;
+    --muted: #B8B0C4;
+    --accent: #FF9D7A;
+    --accent-2: #FF6B6B;
+    --line: rgba(253,246,242,0.14);
+    --line-strong: rgba(253,246,242,0.22);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    height:100%;
+    background: linear-gradient(160deg, #101c22 0%, #1a1230 65%, #221232 100%);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ambient field: faint grid of prospect-dots */
+  .field{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 34px 34px;
+    opacity:0.5;
+    pointer-events:none;
+  }
+
+  .glow{
+    position:fixed;
+    bottom:-15%;
+    right:-10%;
+    width:65%;
+    height:55%;
+    background: radial-gradient(circle, rgba(255,140,120,0.22) 0%, transparent 70%);
+    filter: blur(50px);
+    z-index:0;
+    pointer-events:none;
+  }
+
+  .pulse{
+    position:fixed;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background: var(--accent);
+    z-index:0;
+    opacity:0;
+    pointer-events:none;
+    box-shadow: 0 0 12px 2px rgba(232,163,61,0.6);
+    animation: pulseDot 6s ease-in-out infinite;
+  }
+  .pulse.p1{ top: 22%; left: 18%; animation-delay: 0s; }
+  .pulse.p2{ top: 68%; left: 78%; animation-delay: 2s; }
+  .pulse.p3{ top: 40%; left: 85%; animation-delay: 4s; }
+  .pulse.p4{ top: 80%; left: 24%; animation-delay: 1s; }
+
+  @keyframes pulseDot{
+    0%, 100% { opacity: 0; transform: scale(0.6); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .pulse{ animation: none; opacity: 0.35; }
+  }
+
+  header{
+    position:relative;
+    z-index:1;
+    padding: 28px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .wordmark{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .wordmark strong{
+    color: var(--ink);
+    font-weight:500;
+  }
+
+  main{
+    position:relative;
+    z-index:1;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 40px 24px 120px;
+    text-align:center;
+  }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 22px;
+  }
+
+  h1{
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 5.4vw, 56px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    max-width: 780px;
+    margin: 0 0 18px;
+  }
+
+  .sub{
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 0 44px;
+  }
+
+  form{
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .search-shell{
+    position:relative;
+    display:flex;
+    align-items:center;
+    background: var(--bg-soft);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 6px 6px 6px 20px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .search-shell:focus-within{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(255,157,122,0.14);
+  }
+
+  .search-shell svg{
+    flex-shrink:0;
+    color: var(--muted);
+  }
+
+  input[type="text"]{
+    flex:1;
+    border:0;
+    background: transparent;
+    color: var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size: 16px;
+    padding: 16px 14px;
+    outline:none;
+  }
+  input[type="text"]::placeholder{ color: var(--muted); }
+
+  button.go{
+    flex-shrink:0;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #1a1020;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  button.go:hover{ filter: brightness(1.08); }
+  button.go:active{ transform: scale(0.94); }
+  button.go:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+  button.go:disabled{ opacity: 0.5; cursor: default; }
+
+  .hint{
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .hint span{ color: var(--ink); }
+
+  /* --- scan state --- */
+  .scan{
+    width:100%;
+    max-width: 640px;
+    text-align:left;
+    background: var(--bg-soft);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 22px 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    display:none;
+  }
+  .scan.active{ display:block; }
+
+  .scan-target{
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .scan-target strong{ color: var(--ink); font-weight:500; }
+
+  .scan-line{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    color: var(--muted);
+    padding: 6px 0;
+    opacity:0;
+    transform: translateY(4px);
+  }
+  .scan-line.show{
+    animation: lineIn 0.35s ease forwards;
+  }
+  .scan-line .dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--line-strong);
+    flex-shrink:0;
+  }
+  .scan-line.done .dot{ background: var(--accent); }
+  .scan-line.done{ color: var(--ink); }
+
+  @keyframes lineIn{
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  .scan-cta{
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .scan-cta.show{ display:flex; }
+
+  .scan-cta .ready{
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .scan-cta button{
+    font-family:'IBM Plex Sans', sans-serif;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    font-size: 13.5px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    cursor:pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .scan-cta button:hover{ border-color: var(--accent); background: rgba(255,157,122,0.08); }
+
+  footer{
+    position:relative;
+    z-index:1;
+    text-align:center;
+    padding: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 480px){
+    .search-shell{ padding-left: 14px; }
+    input[type="text"]{ font-size:15px; padding: 14px 10px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="field"></div>
+  <div class="glow"></div>
+  <div class="pulse p1"></div>
+  <div class="pulse p2"></div>
+  <div class="pulse p3"></div>
+  <div class="pulse p4"></div>
+
+  <header>
+    <div class="wordmark"><strong>MarketLead</strong> AI</div>
+    <div class="wordmark">By AI Launch Africa</div>
+  </header>
+
+  <main>
+    <h1>Start with one company.<br>We'll map its market for you.</h1>
+    <p class="sub">Enter a business name or website. We'll research it, size up the competition, and start building an outreach campaign — no setup required.</p>
+
+    <form id="searchForm">
+      <div class="search-shell">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="companyInput" placeholder="Enter a company name or website" autocomplete="off" required>
+        <button type="submit" class="go" id="goBtn" aria-label="Start research">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </div>
+      <p class="hint">Try <span>your own company</span>, or one you're hoping to sell to.</p>
+    </form>
+
+    <div class="scan" id="scanBox">
+      <div class="scan-target">Scanning <strong id="scanTarget"></strong></div>
+      <div id="scanLines"></div>
+      <div class="scan-cta" id="scanCta">
+        <div class="ready">Company profile ready for review.</div>
+        <button type="button" id="continueBtn">Continue →</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>MARKETLEAD AI — GROWTH INTELLIGENCE FOR B2B TEAMS</footer>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    const input = document.getElementById('companyInput');
+    const scanBox = document.getElementById('scanBox');
+    const scanTarget = document.getElementById('scanTarget');
+    const scanLines = document.getElementById('scanLines');
+    const scanCta = document.getElementById('scanCta');
+    const continueBtn = document.getElementById('continueBtn');
+
+    const steps = [
+      'resolving target',
+      'reading company profile',
+      'identifying industry vertical',
+      'mapping competitors'
+    ];
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      const value = input.value.trim();
+      if(!value) return;
+
+      form.style.display = 'none';
+      scanTarget.textContent = value;
+      scanLines.innerHTML = '';
+      scanCta.classList.remove('show');
+      scanBox.classList.add('active');
+
+      steps.forEach(function(label, i){
+        const el = document.createElement('div');
+        el.className = 'scan-line';
+        el.innerHTML = '<span class="dot"></span><span>' + label + '</span>';
+        scanLines.appendChild(el);
+
+        setTimeout(function(){
+          el.classList.add('show');
+        }, i * 420);
+
+        setTimeout(function(){
+          el.classList.add('done');
+        }, i * 420 + 700);
+      });
+
+      const totalTime = steps.length * 420 + 900;
+      setTimeout(function(){
+        scanCta.classList.add('show');
+      }, totalTime);
+
+      // Hook point: this is where the captured `value` gets handed off
+      // to Step 1 of the MarketLead AI agent (company research).
+      // e.g. postMessage(value) to an embedded chat widget, or
+      // redirect to /chat?target=<value>, or call your Netlify function directly.
+    });
+
+    continueBtn.addEventListener('click', function(){
+      const target = scanTarget.textContent;
+      // Hands off to the chat widget, which reads ?clientId= and ?target=
+      // from the URL and auto-starts Step 1 of the MarketLead AI agent.
+      window.location.href = '/chat.html?clientId=marketlead&target=' + encodeURIComponent(target);
+    });
+  </script>
+
+</body>
+</html>
