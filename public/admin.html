@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Launch Africa — Admin</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f1115;
+    color: #e8e8e8;
+    margin: 0;
+    padding: 24px 16px 60px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { opacity: 0.6; font-size: 13px; margin: 0 0 20px; }
+
+  #key-gate {
+    max-width: 360px;
+    margin: 60px auto;
+    background: #171a21;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  #key-gate input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #333a48;
+    background: #0f1115;
+    color: white;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  #key-gate button, .refresh-btn {
+    background: #3b6ef5;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 18px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  #key-error { color: #ff6b6b; font-size: 13px; min-height: 18px; }
+
+  #dashboard { display: none; max-width: 900px; margin: 0 auto; }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: #171a21;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .stat-card .label { font-size: 12px; opacity: 0.6; }
+  .stat-card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 28px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #262b36; white-space: nowrap; }
+  th { opacity: 0.6; font-weight: 600; }
+  .status-successful, .status-sent { color: #5fd97a; }
+  .status-pending { color: #e8c15a; }
+  .status-failed, .status-verification_failed, .status-cancelled { color: #ff6b6b; }
+  .table-wrap { overflow-x: auto; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+</style>
+</head>
+<body>
+
+<div id="key-gate">
+  <h1>Admin</h1>
+  <p class="sub">Enter your admin key to view billing &amp; usage.</p>
+  <input id="admin-key-input" type="password" placeholder="Admin key" />
+  <button id="admin-key-submit">View Dashboard</button>
+  <p id="key-error"></p>
+</div>
+
+<div id="dashboard">
+  <h1>AI Launch Africa — Billing &amp; Usage</h1>
+  <p class="sub">
+    <button class="refresh-btn" id="refresh-btn">Refresh</button>
+  </p>
+
+  <div class="stat-grid" id="stat-grid"></div>
+
+  <h2>Transactions</h2>
+  <div class="table-wrap">
+    <table id="txn-table">
+      <thead>
+        <tr><th>Reference</th><th>Package</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h2>Sent Emails</h2>
+  <div class="table-wrap">
+    <table id="email-table">
+      <thead>
+        <tr><th>Recipient</th><th>Company</th><th>Subject</th><th>Status</th><th>Date</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const gate = document.getElementById('key-gate');
+  const dashboard = document.getElementById('dashboard');
+  const keyInput = document.getElementById('admin-key-input');
+  const keyError = document.getElementById('key-error');
+
+  let adminKey = sessionStorage.getItem('ala_admin_key') || '';
+
+  function fmtMoney(n) {
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
+  }
+  function fmtDate(s) {
+    return new Date(s).toLocaleString();
+  }
+
+  async function loadDashboard() {
+    keyError.textContent = '';
+    try {
+      const res = await fetch('/.netlify/functions/admin-summary', {
+        headers: { 'x-admin-key': adminKey },
+      });
+      if (res.status === 401) {
+        keyError.textContent = 'Incorrect admin key.';
+        sessionStorage.removeItem('ala_admin_key');
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        keyError.textContent = data.error || 'Could not load dashboard.';
+        return;
+      }
+
+      sessionStorage.setItem('ala_admin_key', adminKey);
+      gate.style.display = 'none';
+      dashboard.style.display = 'block';
+      renderStats(data);
+      renderTxns(data.transactions);
+      renderEmails(data.emails);
+    } catch (err) {
+      keyError.textContent = 'Network error — please try again.';
+    }
+  }
+
+  function renderStats(data) {
+    const stats = [
+      ['Current balance', `${data.currentBalance} credits`],
+      ['Revenue', fmtMoney(data.revenue)],
+      ['Total payments', data.totalPayments],
+      ['Successful payments', data.successfulPayments],
+      ['Failed payments', data.failedPayments],
+      ['Credits purchased', data.creditsPurchased],
+      ['Emails sent', data.emailsSent],
+    ];
+    document.getElementById('stat-grid').innerHTML = stats
+      .map(([label, value]) => `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`)
+      .join('');
+  }
+
+  function renderTxns(txns) {
+    document.querySelector('#txn-table tbody').innerHTML = txns
+      .map(
+        (t) => `<tr>
+          <td>${t.reference}</td>
+          <td>${t.package} (${t.credits})</td>
+          <td>${fmtMoney(t.amount)}</td>
+          <td class="status-${t.status}">${t.status}</td>
+          <td>${fmtDate(t.created_at)}</td>
+        </tr>`
+      )
+      .join('');
+  }
+
+  function renderEmails(emails) {
+    document.querySelector('#email-table tbody').innerHTML = emails
+      .map(
+        (e) => `<tr>
+          <td>${e.recipient_email || ''}</td>
+          <td>${e.recipient_company || ''}</td>
+          <td>${(e.subject || '').slice(0, 40)}</td>
+          <td class="status-${e.status}">${e.status}</td>
+          <td>${fmtDate(e.created_at)}</td>
+        </tr>`
+      )
+      .join('');
+  }
+
+  document.getElementById('admin-key-submit').addEventListener('click', () => {
+    adminKey = keyInput.value.trim();
+    if (adminKey) loadDashboard();
+  });
+  document.getElementById('refresh-btn').addEventListener('click', loadDashboard);
+
+  if (adminKey) loadDashboard();
+</script>
+
+</body>
+</html>
